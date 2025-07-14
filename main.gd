@@ -1,6 +1,8 @@
 extends Node2D
 
 @export var mino_width = 48
+@export var update_wait_time = 0.2 
+@export var update_wait_time_speedup = 0.05
 
 enum {START_GAME,
 	WAIT_TO_DEPLOY, 
@@ -26,6 +28,8 @@ var grid = []
 var mutex = Mutex.new()
 var row_to_clear
 var state = START_GAME
+var can_rotate = true
+var down_pressed = false
 
 # Callbacks
 func _ready(): 
@@ -52,6 +56,10 @@ func _process(delta):
 	elif state == DEPLOY:
 		state = create_and_verify_tetramino()
 	elif state == WAIT_TO_UPDATE_TETRAMINO:
+		if down_pressed:
+			$UpdateTimer.wait_time = update_wait_time_speedup
+		else:
+			$UpdateTimer.wait_time = update_wait_time
 		if $UpdateTimer.is_stopped():
 			$UpdateTimer.start() 
 	elif state == UPDATE_TETRAMINO: 
@@ -79,24 +87,22 @@ func _process(delta):
 	elif state == END_GAME: 
 		cleanup()
 		state = START_GAME
-
-func _input(ev):
-	if ev is InputEventKey and !ev.pressed:
-		return
-	if ev is InputEventKey and ev.keycode == KEY_RIGHT and not ev.echo:
-		# Move Right 
+		
+	if Input.is_action_just_pressed("Right"):
 		if !check_tetramino_collision(0, 1, false):
 			tetramino_root[0] += 1
-	if ev is InputEventKey and ev.keycode == KEY_LEFT and not ev.echo:
-		# Move Left
+	if Input.is_action_just_pressed("Left"):
 		if !check_tetramino_collision(0, -1, false): 
 			tetramino_root[0] -= 1
-	if ev is InputEventKey and ev.keycode == KEY_UP and not ev.echo:
-		if !check_tetramino_collision(0, 0, true): 
-			rotate_tetramino()
-	if ev is InputEventKey and ev.keycode == KEY_DOWN:
+	if Input.is_action_pressed("Down"):
 		if !check_tetramino_collision(1, 0, false):  
 			tetramino_root[1] +=1
+		down_pressed = true
+	else:
+		down_pressed = false 
+	if Input.is_action_just_pressed("Up"): 
+		if !check_tetramino_collision(0, 0, true): 
+			rotate_tetramino()
 	update_tetramino_position_transforms()
 
 func _on_deploy_timer_timeout() -> void:
@@ -178,6 +184,10 @@ func cleanup():
 			if grid[column][row] != null: 
 				grid[column][row][0].queue_free()
 				grid[column][row] = null 
+	if tetramino != null:
+		for mino in tetramino: 
+			mino[0].queue_free()
+		tetramino = null
 	$Hud/ScoreLabel.text = "Score: 0000"
 	$Hud/StartButton.show()
 
@@ -211,6 +221,7 @@ func create_mino(color):
 	return rect
 
 func create_tetramino(tetramino_idx):
+	can_rotate = true
 	if tetramino_idx == 0:
 		var c = Color.RED
 		return [[create_mino(c), Vector2(-2, 0)],
@@ -219,6 +230,7 @@ func create_tetramino(tetramino_idx):
 				[create_mino(c), Vector2(1, 0)]]
 	elif tetramino_idx == 1:
 		var c = Color.YELLOW
+		can_rotate = false
 		return [[create_mino(c), Vector2(-1, 0)],
 				[create_mino(c), Vector2(0, 0)],
 				[create_mino(c), Vector2(-1, 1)],
@@ -275,7 +287,7 @@ func check_tetramino_collision(plus_y = 0, plus_x = 0, rotate=false):
 	return false 
 	
 func rotate_tetramino():
-	if tetramino != null: 
+	if tetramino != null and can_rotate: 
 		for mino in tetramino:
 			var pos = mino[1] 
 			var x = pos[0]
