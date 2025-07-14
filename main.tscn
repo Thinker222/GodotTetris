@@ -1,0 +1,35 @@
+[gd_scene load_steps=3 format=3 uid="uid://b6cpkn35mafmb"]
+
+[ext_resource type="Script" uid="uid://cqp0g85sk84lo" path="res://main.gd" id="1_0xm2m"]
+[ext_resource type="PackedScene" uid="uid://novvhvcm87e3" path="res://HUD.tscn" id="2_h2yge"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("1_0xm2m")
+
+[node name="Hud" parent="." instance=ExtResource("2_h2yge")]
+
+[node name="DeployTimer" type="Timer" parent="."]
+wait_time = 0.389
+one_shot = true
+
+[node name="UpdateTimer" type="Timer" parent="."]
+wait_time = 0.2
+one_shot = true
+
+[node name="ClearRowTimer" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true
+
+[node name="ShiftAfterClearTimer" type="Timer" parent="."]
+wait_time = 0.1
+one_shot = true
+
+[node name="GameEndTimer" type="Timer" parent="."]
+one_shot = true
+
+[connection signal="start_game" from="Hud" to="." method="_on_hud_start_game"]
+[connection signal="timeout" from="DeployTimer" to="." method="_on_deploy_timer_timeout"]
+[connection signal="timeout" from="UpdateTimer" to="." method="_on_update_timer_timeout"]
+[connection signal="timeout" from="ClearRowTimer" to="." method="_on_clear_row_timer_timeout"]
+[connection signal="timeout" from="ShiftAfterClearTimer" to="." method="_on_shift_after_clear_timer_timeout"]
+[connection signal="timeout" from="GameEndTimer" to="." method="_on_game_end_timer_timeout"]
